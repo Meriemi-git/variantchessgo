@@ -9,6 +9,22 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+type CustomError struct {
+	message    string
+	statusCode int
+}
+
+func (this *CustomError) New(message string) {
+	this.message = message
+}
+func (this *CustomError) Error() string {
+	return this.message
+}
+
+func (this *CustomError) SetCode(code int) {
+	this.statusCode = code
+}
+
 func OnUserAuthentAfter(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *api.Session, in *api.AuthenticateGoogleRequest) error {
 	logger.Info("OnUserAuthentAfter")
 	vars, varsOk := ctx.Value(runtime.RUNTIME_CTX_VARS).(map[string]string)
@@ -35,55 +51,48 @@ func OnUserAuthentAfter(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 }
 
 func OnUserAuthentBefore(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *api.AuthenticateGoogleRequest) (*api.AuthenticateGoogleRequest, error) {
-
+	logger.Info("On Before")
 	vars := in.GetAccount().Vars
-
 	signType := vars["signType"]
 	email := vars["mail"]
-	//var id int
-	logger.Info("mail : %s", email)
-	logger.Info("signType : %s", signType)
+	logger.Info("signType %s", signType)
+	logger.Info("mail %s", email)
 	if signType == "SIGNIN" {
-		logger.Info("In signin")
-		rows, err := db.QueryContext(ctx, "SELECT metadata FROM users")
-		logger.Info("after query")
+		rows, err := db.QueryContext(ctx, "SELECT email, metadata FROM users WHERE email=$1 OR email IS NULL", email)
 		if err != nil {
-			logger.Info("Error 1")
 			return nil, err
 		}
 		defer rows.Close()
-		logger.Info("after defer")
 		for rows.Next() {
-			logger.Info("In For")
-
-			logger.Info("Mail is empty")
 			var metadata []byte
-			if err := rows.Scan(&metadata); err != nil {
-				// Check for a scan error.
-				// Query rows will be closed with defer.
-				logger.Info("Error 3")
+			var userMail sql.NullString
+			if err := rows.Scan(&userMail, &metadata); err != nil {
 				return nil, err
 			}
-			var input map[string]string
-			err := json.Unmarshal([]byte(metadata), &input)
-			if err != nil {
-				logger.Info("Error 4")
-				return nil, err
-			}
-			if input["mail"] == email {
-				logger.Info("error found google account with this name")
-				return nil, errors.New("found google account with this name")
+			if userMail.Valid {
+				if userMail.String == email {
+					var custErr CustomError
+					custErr.New("do you want to link your account")
+					custErr.SetCode(406)
+					return nil, &custErr
+				}
+			} else {
+				var input map[string]string
+				err := json.Unmarshal([]byte(metadata), &input)
+				if err != nil {
+					return nil, err
+				}
+				if input["mail"] == email {
+					return nil, errors.New("you have already signi with this account please signup instead")
+				}
 			}
 		}
 		rerr := rows.Close()
 		if rerr != nil {
-			logger.Info("Error 5")
 			return nil, err
 		}
 
-		// Rows.Err will report the last error encountered by Rows.Scan.
 		if err := rows.Err(); err != nil {
-			logger.Info("Error 6")
 			return nil, err
 		}
 	}
