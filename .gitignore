@@ -1,0 +1,7 @@
+
+/plugin-code/.vs/
+/plugin-code/pkg/
+/plugin-code/src/
+/plugin-code/modules/
+.idea
+/plugin-code/go.sum
