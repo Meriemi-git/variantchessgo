@@ -7,14 +7,19 @@ import (
 )
 
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
-	if err := initializer.RegisterBeforeAuthenticateGoogle(OnUserAuthentBefore); err != nil {
+	/*	if err := initializer.RegisterBeforeAuthenticateGoogle(OnUserAuthentBefore); err != nil {
+		logger.Error("Unable to register: %v", err)
+		return err
+	}*/
+
+	if err := initializer.RegisterAfterAuthenticateGoogle(OnUserAuthentAfter); err != nil {
 		logger.Error("Unable to register: %v", err)
 		return err
 	}
 
-	/*	if err := initializer.RegisterAfterAuthenticateGoogle(OnUserAuthentAfter); err != nil {
+	if err := initializer.RegisterRpc("user_exists", UserExists); err != nil {
 		logger.Error("Unable to register: %v", err)
 		return err
-	}*/
+	}
 	return nil
 }

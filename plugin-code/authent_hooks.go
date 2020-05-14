@@ -34,29 +34,27 @@ func OnUserAuthentAfter(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	}
 	userId, userIdOk := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !userIdOk {
-		logger.Info("invalid context userId")
+		logger.Info("invalid context vars")
 		return errors.New("invalid context")
 	}
-
-	signType := vars["signType"]
-	mail := vars["mail"]
-	logger.Info("signType : %s", signType)
-	logger.Info("mail : %s", mail)
-	logger.Info("Create : %b", out.Created)
-	logger.Info("userId : %s", userId)
-	if signType == "SIGNIN" {
-
+	result, err := db.ExecContext(ctx, "UPDATE users SET email= &1 WHERE id=&2", vars["mail"], userId)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return errors.New("expected to affect 1 row, affected multiple")
 	}
 	return errors.New("try to create existing google account")
 }
 
 func OnUserAuthentBefore(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *api.AuthenticateGoogleRequest) (*api.AuthenticateGoogleRequest, error) {
-	logger.Info("On Before")
 	vars := in.GetAccount().Vars
 	signType := vars["signType"]
 	email := vars["mail"]
-	logger.Info("signType %s", signType)
-	logger.Info("mail %s", email)
 	if signType == "SIGNIN" {
 		rows, err := db.QueryContext(ctx, "SELECT email, metadata FROM users WHERE email=$1 OR email IS NULL", email)
 		if err != nil {
@@ -71,10 +69,8 @@ func OnUserAuthentBefore(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			}
 			if userMail.Valid {
 				if userMail.String == email {
-					var custErr CustomError
-					custErr.New("do you want to link your account")
-					custErr.SetCode(406)
-					return nil, &custErr
+					customError := runtime.Error{Code: 16, Message: "vanilla account already exist, can link it"}
+					return nil, &customError
 				}
 			} else {
 				var input map[string]string
@@ -83,7 +79,8 @@ func OnUserAuthentBefore(ctx context.Context, logger runtime.Logger, db *sql.DB,
 					return nil, err
 				}
 				if input["mail"] == email {
-					return nil, errors.New("you have already signi with this account please signup instead")
+					customError := runtime.Error{Code: 6, Message: "google account already exist"}
+					return nil, &customError
 				}
 			}
 		}
