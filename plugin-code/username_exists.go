@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
-func UserExists(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+func UsernameExists(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 	var input map[string]string
 	err := json.Unmarshal([]byte(payload), &input)
 	if err != nil {
