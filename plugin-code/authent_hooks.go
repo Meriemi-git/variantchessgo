@@ -5,26 +5,33 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+// CustomError commentary
 type CustomError struct {
 	message    string
 	statusCode int
 }
 
-func (this *CustomError) New(message string) {
-	this.message = message
-}
-func (this *CustomError) Error() string {
-	return this.message
+// New commentary
+func (error *CustomError) New(message string) {
+	error.message = message
 }
 
-func (this *CustomError) SetCode(code int) {
-	this.statusCode = code
+// Error commentary
+func (error *CustomError) Error() string {
+	return error.message
 }
 
+// SetCode commentary
+func (error *CustomError) SetCode(code int) {
+	error.statusCode = code
+}
+
+// OnUserAuthentAfter comment
 func OnUserAuthentAfter(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *api.Session, in *api.AuthenticateGoogleRequest) error {
 	logger.Info("OnUserAuthentAfter")
 	vars, varsOk := ctx.Value(runtime.RUNTIME_CTX_VARS).(map[string]string)
@@ -32,12 +39,12 @@ func OnUserAuthentAfter(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 		logger.Info("invalid context vars")
 		return errors.New("invalid context")
 	}
-	userId, userIdOk := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-	if !userIdOk {
+	userID, userIDOk := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !userIDOk {
 		logger.Info("invalid context vars")
 		return errors.New("invalid context")
 	}
-	result, err := db.ExecContext(ctx, "UPDATE users SET email= &1 WHERE id=&2", vars["mail"], userId)
+	result, err := db.ExecContext(ctx, "UPDATE users SET email= &1 WHERE id=&2", vars["mail"], userID)
 	if err != nil {
 		return err
 	}
@@ -51,6 +58,7 @@ func OnUserAuthentAfter(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	return errors.New("try to create existing google account")
 }
 
+// OnUserAuthentBefore comment
 func OnUserAuthentBefore(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *api.AuthenticateGoogleRequest) (*api.AuthenticateGoogleRequest, error) {
 	vars := in.GetAccount().Vars
 	signType := vars["signType"]

@@ -8,6 +8,7 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+// UsernameExists comment
 func UsernameExists(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 	var input map[string]string
 	err := json.Unmarshal([]byte(payload), &input)

@@ -10,10 +10,12 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+// SessionCheckResponse comment
 type SessionCheckResponse struct {
 	AlreadyConnected bool `json:"already_connected"`
 }
 
+// CheckUserSessionExists comment
 func CheckUserSessionExists(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {

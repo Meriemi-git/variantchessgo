@@ -7,6 +7,7 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+// InitModule comment
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
 
 	if err := initializer.RegisterRpc("username_exists", UsernameExists); err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+// OnRegisterMatchMakerMatched comment
 func OnRegisterMatchMakerMatched(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, entries []runtime.MatchmakerEntry) (string, error) {
 	for _, e := range entries {
 		logger.Info("Matched user '%s' named '%s'", e.GetPresence().GetUserId(), e.GetPresence().GetUsername())
@@ -17,7 +18,7 @@ func OnRegisterMatchMakerMatched(ctx context.Context, logger runtime.Logger, db 
 	params := map[string]interface{}{
 		"some": "data",
 	}
-	matchId, err := nk.MatchCreate(ctx, "variantchess", params)
+	matchID, err := nk.MatchCreate(ctx, "variantchess", params)
 	if err != nil {
 		return "", err
 	}
@@ -26,6 +27,6 @@ func OnRegisterMatchMakerMatched(ctx context.Context, logger runtime.Logger, db 
 	//	return "", err
 	//}
 
-	return matchId, nil
+	return matchID, nil
 
 }
