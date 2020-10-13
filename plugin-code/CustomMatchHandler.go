@@ -83,14 +83,14 @@ func (m *Match) MatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 // MatchLoop comment
 func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, messages []runtime.MatchData) interface{} {
 	mState, _ := state.(*MatchState)
-	for _, presence := range mState.presences {
-		logger.Info("Presence %v named %v", presence.GetUserId(), presence.GetUsername())
-	}
 
 	for _, message := range messages {
-		logger.Warn("Received %v from %v", string(message.GetData()), message.GetUserId())
-
-		dispatcher.BroadcastMessage(1, message.GetData(), []runtime.Presence{message}, nil, true)
+		const nbPresence = 3
+		var presences []runtime.Presence
+		for _, presence := range mState.presences {
+			presences = append(presences, presence)
+		}
+		dispatcher.BroadcastMessage(1, message.GetData(), presences, nil, true)
 	}
 
 	return mState
@@ -99,6 +99,6 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 // MatchTerminate comment
 func (m *Match) MatchTerminate(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, graceSeconds int) interface{} {
 	message := "Server shutting down in " + strconv.Itoa(graceSeconds) + " seconds."
-	dispatcher.BroadcastMessage(2, []byte(message), nil, nil, true)
+	dispatcher.BroadcastMessage(666, []byte(message), nil, nil, true)
 	return state
 }
