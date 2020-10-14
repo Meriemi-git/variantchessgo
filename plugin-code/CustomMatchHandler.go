@@ -13,9 +13,14 @@ import (
 
 // MatchState comment
 type MatchState struct {
-	presences     map[string]runtime.Presence
-	whitePlayerID string
-	text          string
+	presences map[string]runtime.Presence
+}
+
+// VariantUser comment
+type VariantUser struct {
+	UserID   string
+	Username string
+	Color    string
 }
 
 // Match comment
@@ -27,22 +32,8 @@ func main() {
 
 // MatchInit comment
 func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, params map[string]interface{}) (interface{}, int, string) {
-	presences := make(map[string]runtime.Presence)
 	state := &MatchState{
-		presences:     presences,
-		text:          "Match state de test",
-		whitePlayerID: "",
-	}
-	// Initialize random num generator
-	rand.Seed(time.Now().UnixNano())
-	whiteIdx := rand.Intn(2)
-	logger.Warn("Random white idx : %d", whiteIdx)
-	loopIdx := 0
-	for _, presence := range presences {
-		if whiteIdx == loopIdx {
-			state.whitePlayerID = presence.GetUserId()
-		}
-		loopIdx++
+		presences: make(map[string]runtime.Presence),
 	}
 	tickRate := 1
 	label := "TestMatchLabel"
@@ -59,13 +50,39 @@ func (m *Match) MatchJoinAttempt(ctx context.Context, logger runtime.Logger, db 
 // MatchJoin comment
 func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, presences []runtime.Presence) interface{} {
 	mState, _ := state.(*MatchState)
-	for _, p := range presences {
-		mState.presences[p.GetUserId()] = p
+	for _, presence := range presences {
+		mState.presences[presence.GetUserId()] = presence
 	}
-	message, err := json.Marshal(mState)
-	if err == nil {
-		logger.Warn("Send message on MatchJoin")
-		dispatcher.BroadcastMessage(2, []byte(message), presences, nil, true)
+
+	if len(mState.presences) >= 2 {
+		var userList []VariantUser
+		var recipients []runtime.Presence
+		// Initialize random num generator
+		rand.Seed(time.Now().UnixNano())
+		whiteIdx := rand.Intn(2)
+		loopIndex := 0
+		for _, connected := range mState.presences {
+			recipients = append(recipients, connected)
+			if whiteIdx == loopIndex {
+				userList = append(userList, VariantUser{
+					UserID:   connected.GetUserId(),
+					Color:    "white",
+					Username: connected.GetUsername(),
+				})
+			} else {
+				userList = append(userList, VariantUser{
+					UserID:   connected.GetUserId(),
+					Color:    "black",
+					Username: connected.GetUsername(),
+				})
+			}
+			loopIndex = loopIndex + 1
+		}
+
+		response, err := json.Marshal(userList)
+		if err == nil {
+			dispatcher.BroadcastMessage(2, []byte(string(response)), recipients, nil, true)
+		}
 	}
 	return mState
 }
@@ -85,12 +102,16 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	mState, _ := state.(*MatchState)
 
 	for _, message := range messages {
-		const nbPresence = 3
-		var presences []runtime.Presence
+		var sender runtime.Presence
+		var recipients []runtime.Presence
 		for _, presence := range mState.presences {
-			presences = append(presences, presence)
+			if presence.GetUserId() != message.GetUserId() {
+				recipients = append(recipients, presence)
+			} else {
+				sender = presence
+			}
 		}
-		dispatcher.BroadcastMessage(1, message.GetData(), presences, nil, true)
+		dispatcher.BroadcastMessage(1, message.GetData(), recipients, sender, true)
 	}
 
 	return mState
