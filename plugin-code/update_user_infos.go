@@ -5,14 +5,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+// UpdateUserInfos comment
 func UpdateUserInfos(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-	userId, userIdOk := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-	if !userIdOk {
+	userID, userIDOk := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !userIDOk {
 		logger.Info("invalid context vars")
-		return "",errors.New("invalid context")
+		return "", errors.New("invalid context")
 	}
 
 	var input map[string]string
@@ -29,20 +31,20 @@ func UpdateUserInfos(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 	logger.Info("langTag " + langTag)
 	var location = input["location"]
 	logger.Info("location " + location)
-	var avatarUrl = input["avatarUrl"]
-	logger.Info("avatarUrl " + avatarUrl)
+	var avatarURL = input["avatarUrl"]
+	logger.Info("avatarUrl " + avatarURL)
 
-	var existingId sql.NullString
-	sqlErr := db.QueryRowContext(ctx, "SELECT display_name FROM users WHERE display_name=$1", displayName).Scan(&existingId)
+	var existingID sql.NullString
+	sqlErr := db.QueryRowContext(ctx, "SELECT display_name FROM users WHERE display_name=$1", displayName).Scan(&existingID)
 	logger.Info("Query proceed")
 	switch {
 	case sqlErr == sql.ErrNoRows:
-		if err := nk.AccountUpdateId(ctx, userId, "", nil, displayName, timeZone, "location", langTag, "avatar_url"); err != nil {
+		if err := nk.AccountUpdateId(ctx, userID, "", nil, displayName, timeZone, "location", langTag, "avatar_url"); err != nil {
 			logger.Error("Account update error: %s", err.Error())
-			return "",err
+			return "", err
 		}
 		logger.Info("Update account proceed")
-		return "",nil
+		return "", nil
 	case sqlErr != nil:
 		logger.Info("Erro sql")
 		return "", sqlErr
